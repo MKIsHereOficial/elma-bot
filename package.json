@@ -34,7 +34,8 @@
     "systeminformation": "^5.11.1",
     "tweetnacl": "^1.0.3",
     "utf-8-validate": "^5.0.9",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "dotenv" :"^16.0.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.15"
