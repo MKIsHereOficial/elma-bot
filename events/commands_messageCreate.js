@@ -4,7 +4,14 @@ exports.data = {
   name: 'messageCreate',
 }
 
+/**
+ * @param {import('discord.js').Client} client 
+ * @param {import('discord.js').Message} message 
+ * @returns {any}
+ */
 exports.run = async (client, message) => {
+  console.log(message.member);
+
   if ([`<@!${client.user.id}> registro`, `<@${client.user.id}> registro`].includes(message.content.toLowerCase())) return client.emit('buildRegister', message);
   
   if ([`<@!${client.user.id}>`, `<@${client.user.id}>`].includes(message.content)) {
