@@ -8,6 +8,7 @@ exports.run = async (client) => {
 
   const dbClient = require('../utils/database');
 
+
   //client.emit('updateCommands', client);
   console.log(await slash.getCommands('942638451080167465'));
 

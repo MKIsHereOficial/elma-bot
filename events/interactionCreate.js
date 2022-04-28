@@ -22,7 +22,6 @@ exports.run = async (client, interaction) => {
 
   if (cmd['help']['perms'] && Array.isArray(cmd['help']['perms']) && !interaction.memberPermissions.has(cmd['perms'])) return await interaction.reply({ content: 'Você não possui as permissãos necessárias para utiizar este comando.', ephemeral: true });
 
-
   return await cmd.run({ slash: true, client, options: cmdOptions, interaction }).catch(err => {
     console.log('[SLASH-COMMANDS]', `Um erro ocorreu ao executar o comando ${cmdName}`);
     console.error(err);

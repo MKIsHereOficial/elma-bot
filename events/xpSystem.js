@@ -9,23 +9,27 @@ exports.data = {
 exports.run = async (client, message) => {
   if (!message.guild || message.author.bot) return;
 
-  let userXp = await client.db.get(`${message.author.id}.xp`);
-  if (!userXp) { userXp = 0; await client.db.set(`${message.author.id}.xp`, 0) };
-  let maxXp = await client.db.get(`${message.author.id}.max_xp`);
-  if (!maxXp) { maxXp = 0; await client.db.set(`${message.author.id}.max_xp`, 100) };
+  if (!(await client.db.get('levels'))) {
+    await client.db.set('levels', {});
+  }
 
-  if (!(await client.db.get(`${message.author.id}.level`))) await client.db.set(`${message.author.id}.level`, 0);
+  let userXp = await client.db.get(`levels.${message.author.id}.xp`);
+  if (!userXp) { userXp = 0; await client.db.set(`levels.${message.author.id}.xp`, 0) };
+  let maxXp = await client.db.get(`levels.${message.author.id}.max_xp`);
+  if (!maxXp) { maxXp = 0; await client.db.set(`levels.${message.author.id}.max_xp`, 100) };
 
-  let userLevel = parseInt(await client.db.get(`${message.author.id}.level`));
+  if (!(await client.db.get(`levels.${message.author.id}.level`))) await client.db.set(`levels.${message.author.id}.level`, 0);
+
+  let userLevel = parseInt(await client.db.get(`levels.${message.author.id}.level`));
   let newLevel = parseInt(userLevel);
   
 
   async function checkNewLevel() {
-    if (userXp >= ((await client.db.get(`${message.author.id}.max_xp`)) || 100)) {
+    if (userXp >= ((await client.db.get(`levels.${message.author.id}.max_xp`)) || 100)) {
       newLevel += 1;
-      await client.db.set(`${message.author.id}.xp`, Math.round((await client.db.get(`${message.author.id}.xp`)) - (await client.db.get(`${message.author.id}.max_xp`))));
-      maxXp = Math.round((await client.db.get(`${message.author.id}.max_xp`)) * 2);
-      await client.db.set(`${message.author.id}.max_xp`,  maxXp);
+      await client.db.set(`levels.${message.author.id}.xp`, Math.round((await client.db.get(`levels.${message.author.id}.xp`)) - (await client.db.get(`levels.${message.author.id}.max_xp`))));
+      maxXp = Math.round((await client.db.get(`levels.${message.author.id}.max_xp`)) * 2);
+      await client.db.set(`levels.${message.author.id}.max_xp`,  maxXp);
 
       const embed = new MessageEmbed()
         .setTitle("Parabéns! Você acaba de passar de nível!")
@@ -35,14 +39,14 @@ exports.run = async (client, message) => {
         .setTimestamp();
 
 
-      console.log(`[XP SYSTEM]`,`${message.author.tag}:`, `Passou do nível ${await client.db.get(`${message.author.id}.level`)} para o ${await client.db.get(`${message.author.id}.level`) + 1}`);
+      console.log(`[XP SYSTEM]`,`${message.author.tag}:`, `Passou do nível ${await client.db.get(`levels.${message.author.id}.level`)} para o ${await client.db.get(`levels.${message.author.id}.level`) + 1}`);
 
-      if (parseFloat(await client.db.get(`${message.author.id}.xp`)) >= parseFloat(await client.db.get(`${message.author.id}.max_xp`))) {
+      if (parseFloat(await client.db.get(`levels.${message.author.id}.xp`)) >= parseFloat(await client.db.get(`levels.${message.author.id}.max_xp`))) {
         return checkNewLevel();
       }
 
       await message.reply({ content: `${message.author}`, embeds: [embed] }).then(async msg => {
-        await client.db.set(`${message.author.id}.level`, newLevel);
+        await client.db.set(`levels.${message.author.id}.level`, newLevel);
         setTimeout(async () => {
           msg && msg.deletable ? await msg.delete() : null;
         }, 15 * 1000);
@@ -51,10 +55,10 @@ exports.run = async (client, message) => {
   }
   exports.checkNewLevel = checkNewLevel;
 
-  let randXp = Math.round(parseFloat(random.float(0, 10).toFixed(2)));
+  let randXp = Math.round(parseFloat(random.float(5, 15).toFixed(2)));
   
   let cmds = ['reset', 'levelup', 'nocooldown'];
-  if (client.creators.includes(message.author.id)) {
+  if (client.creators.includes(message.author.id) || ['941507039346196572', '941512867457400882'].includes(message.author.id)) {
     let includesCmd = false;
 
     cmds.map(cmd => {
@@ -62,23 +66,27 @@ exports.run = async (client, message) => {
     })
     
     if (message.content.toLowerCase().includes(`--${cmds[0]}`)) {
-      await client.db.set(`${message.author.id}.level`, 0);
-      await client.db.set(`${message.author.id}.xp`, 0);
-      await client.db.set(`${message.author.id}.max_xp`, 0);
-      await client.db.set(`${message.author.id}.last_xp_message_timestamp`, 0);
-      return;
+      let user = message.content.substring(2).split(' ')[1] || message.author.id;
+
+      if (!user) return;
+
+      await client.db.set(`levels.${user.id}.level`, 0);
+      await client.db.set(`levels.${user.id}.xp`, 0);
+      await client.db.set(`levels.${user.id}.max_xp`, 0);
+      await client.db.set(`levels.${user.id}.last_xp_message_timestamp`, 0);
+      return message.reply(`${user === message.author.id ? "Você" : `Usuário ${user}`} foi resetado.`);
     }
-    if (message.content.toLowerCase().includes(`--${cmds[1]}`)) randXp = ((await client.db.get(`${message.author.id}.max_xp`)) - (await client.db.get(`${message.author.id}.xp`))) || 100;
+    if (message.content.toLowerCase().includes(`--${cmds[1]}`)) randXp = ((await client.db.get(`levels.${message.author.id}.max_xp`)) - (await client.db.get(`levels.${message.author.id}.xp`))) || 100;
   }
 
-  if (!(client.creators.includes(message.author.id) && message.content.toLowerCase().includes(`--${cmds[2]}`)) && await client.db.get(`${message.author.id}.last_xp_message_timestamp`) && Date.now() - (await client.db.get(`${message.author.id}.last_xp_message_timestamp`)) <= 60000) {
+  if (!(client.creators.includes(message.author.id) && message.content.toLowerCase().includes(`--${cmds[2]}`)) && await client.db.get(`levels.${message.author.id}.last_xp_message_timestamp`) && Date.now() - (await client.db.get(`levels.${message.author.id}.last_xp_message_timestamp`)) <= 60000) {
     return;
   } else {
-    await client.db.add(`${message.author.id}.xp`, randXp);
-    await client.db.set(`${message.author.id}.last_xp_message_timestamp`, Date.now());
+    await client.db.add(`levels.${message.author.id}.xp`, randXp);
+    await client.db.set(`levels.${message.author.id}.last_xp_message_timestamp`, Date.now());
   }
 
   await checkNewLevel();
 
-  console.log(`[XP SYSTEM]`, `${message.author.tag}:`, `${randXp} xp ganhos de um total de ${userXp}/${(await client.db.get(`${message.author.id}.max_xp`))} xp`);
+  console.log(`[XP SYSTEM]`, `${message.author.tag}:`, `${randXp} xp ganhos de um total de ${userXp}/${(await client.db.get(`levels.${message.author.id}.max_xp`))} xp`);
 }

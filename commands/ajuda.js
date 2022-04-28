@@ -19,6 +19,11 @@ Categorias:
       id: 'util',
       emoji: '💫',
       name: 'Utilidades'
+    },
+    {
+      id: 'fun',
+      emoji: '🍻',
+      name: 'Diversão'
     }
 ];
 
@@ -67,6 +72,12 @@ Categorias:
       if (section['id'] && section['id'] !== "home") {
         let sectionCmds = [];
         cmds.map(cmd => {
+          if (cmd['help']['subcommand']) {
+            console.log(cmd['slash']['options']);
+            cmd['slash']['options'].map(option => {
+              if (option['description'] && option['description'].startsWith(`◜${section.emoji} ${section.name}◞`)) sectionCmds.push({ help: { name: `${cmd['help']['name']} ${option.name}`, description: option.description }, slash: {  name: option.name, description: option.description } });
+            })
+          };
           if (cmd['help']['section'] === section['id']) sectionCmds.push(cmd);
         });
         
@@ -112,13 +123,18 @@ Categorias:
     client.realCommands.forEach(c => {
       cmds.push(c);
     });
-    let cmd = cmds.find(c => c['help']['name'] === optionCmd);
-    let section = sections.find(s => s['id'] === cmd['help']['section']) || null;
+    let cmd = cmds.find(c => c['help']['name'] === optionCmd || c['help']['name'] === optionCmd.split(" ")[0] );
 
-    if (!cmd) return interaction.reply({ content: `Esse comando não foi encontrado!` });
+    if (cmd['help']['subcommand']) {
+      let section = sections.find(s => s['id'] === cmd['help']['section']) || null;
+       
+      let option = cmd['slash']['options'].find(o => o.name === optionCmd.split(" ")[1]);
+      cmd = { help: { name: `${cmd['help']['name']} ${option.name}`, description: option.description }, slash: {  name: option.name, description: option.description } }
+
+      if (!cmd) return interaction.reply({ content: `Esse comando não foi encontrado!` });
     
-    embed = new MessageEmbed()
-      .setDescription(
+      embed = new MessageEmbed()
+        .setDescription(
 `
 **${cmd['help']['name']}**
 ${section ? `Comando da categoria \`◜${section.emoji} ${section.name}◞\`\n` : ""}
@@ -127,10 +143,32 @@ ${cmd['help']['description'] ? `Descrição: ${cmd['help']['description']}
 > ${cmd['slash']['description']}
 `}
 `
-      )
-      .setFooter({text: `Comando emitido por: ${interaction.user.tag} (${interaction.user.id})`})
-      .setColor(client.config.colors.invisible)
-      .setTimestamp();
+        )
+       .setFooter({text: `Comando emitido por: ${interaction.user.tag} (${interaction.user.id})`})
+        .setColor(client.config.colors.invisible)
+       .setTimestamp();
+    } else {
+      let section = sections.find(s => s['id'] === cmd['help']['section']) || null;
+
+      if (!cmd) return interaction.reply({ content: `Esse comando não foi encontrado!` });
+    
+      embed = new MessageEmbed()
+       .setDescription(
+`
+**${cmd['help']['name']}**
+${section ? `Comando da categoria \`◜${section.emoji} ${section.name}◞\`\n` : ""}
+${cmd['help']['description'] ? `Descrição: ${cmd['help']['description']}
+` : `Descrição:
+> ${cmd['slash']['description']}
+`}
+`
+        )
+        .setFooter({text: `Comando emitido por: ${interaction.user.tag} (${interaction.user.id})`})
+        .setColor(client.config.colors.invisible)
+        .setTimestamp();
+    }
+
+    
     defaultMessageOptions = { embeds: [embed] };
     
     interaction.reply(defaultMessageOptions);
